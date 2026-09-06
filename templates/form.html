@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Hazard - SIH26001</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;background:#f8fafc;margin:0;padding:20px}
+   .card{max-width:600px;margin:20px auto;background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1)}
+   .field-label{font-weight:600;font-size:13px;margin:14px 0 6px}
+    input,textarea,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px}
+    textarea{height:90px}
+    #location-map{height:220px;border-radius:8px;margin-top:8px;border:1px solid #e2e8f0}
+    #report-submit-btn{width:100%;margin-top:18px;background:#dc2626;color:white;border:none;padding:12px;border-radius:8px;font-weight:600;cursor:pointer}
+    #coords-display{font-size:12px;color:#64748b;margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2> Report a Hazard</h2>
+    <a href="/" style="display:inline-block;margin-bottom:15px;background:#e5e7eb;padding:8px 14px;border-radius:6px;text-decoration:none;color:black;font-weight:600;"> Back to Map</a>
+    <div class="field-label">Your Name</div>
+    <input id="reporter-name" placeholder="Anonymous">
+
+    <div class="field-label">What did you observe?</div>
+    <select id="observation-type">
+      <option value="ground_crack">Ground crack</option>
+      <option value="slope_movement">Slope movement</option>
+      <option value="rockfall">Rockfall</option>
+      <option value="drainage_issue">Drainage issue</option>
+      <option value="road_damage">Road damage</option>
+      <option value="other">Other</option>
+    </select>
+
+    <div class="field-label">Severity</div>
+    <select id="severity"><option>Low</option><option>Medium</option><option>High</option></select>
+
+    <div class="field-label">Description</div>
+    <textarea id="report-description" placeholder="e.g. Fresh crack near road..."></textarea>
+
+    <div class="field-label">Location *</div>
+    <button type="button" onclick="useMyLocation()" style="padding:6px 10px;"> Use My Current Location</button>
+    <div id="location-map"></div>
+    <div id="coords-display">Tap on mini-map to set location</div>
+
+    <div class="field-label">Photo (optional)</div>
+    <input type="file" id="photo-input" accept="image/*">
+
+    <button id="report-submit-btn" onclick="submitReport()">Submit Report</button>
+    <div id="form-error" style="color:red;display:none;margin-top:10px;">Please select location</div>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const BACKEND_URL = "";
+  var rState = {latitude:null, longitude:null};
+  var locMap = L.map('location-map').setView([23.7271,92.7176],13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(locMap);
+  var marker = null;
+  locMap.on('click', function(e){ setLoc(e.latlng.lat, e.latlng.lng); });
+  function setLoc(lat,lng){
+    rState.latitude=lat; rState.longitude=lng;
+    if(marker) locMap.removeLayer(marker);
+    marker = L.marker([lat,lng]).addTo(locMap);
+    document.getElementById('coords-display').textContent = lat.toFixed(5)+", "+lng.toFixed(5);
+  }
+  function useMyLocation(){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      locMap.setView([pos.coords.latitude, pos.coords.longitude],16);
+      setLoc(pos.coords.latitude, pos.coords.longitude);
+    });
+  }
+  function submitReport(){
+    if(rState.latitude===null){ document.getElementById('form-error').style.display='block'; return; }
+    var fd = new FormData();
+    fd.append('reporter_name', document.getElementById('reporter-name').value || "Anonymous");
+    fd.append('reporter_type', "Citizen");
+    fd.append('latitude', rState.latitude);
+    fd.append('longitude', rState.longitude);
+    fd.append('observation_type', document.getElementById('observation-type').value);
+    fd.append('severity', document.getElementById('severity').value);
+    fd.append('description', document.getElementById('report-description').value);
+    var file = document.getElementById('photo-input').files[0];
+    if(file) fd.append('photo', file);
+
+    fetch(BACKEND_URL + "/api/reports", {method:'POST', body:fd})
+   .then(r=>r.json()).then(()=>{ alert("Report Submitted!"); window.location.href="/"; })
+   .catch(()=>{ alert("Failed - check server"); });
+  }
+</script>
+</body>
+</html>
