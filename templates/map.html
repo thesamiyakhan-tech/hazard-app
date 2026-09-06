@@ -1395,6 +1395,7 @@
     }).setView([23.7271, 92.7176], 12);
     L.control.zoom({ position: 'topleft' }).addTo(map);
     L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
+    setTimeout(() => { map.invalidateSize(); }, 600);
 
     var streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 22, maxNativeZoom: 19, attribution: '© OpenStreetMap contributors'
